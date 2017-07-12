@@ -1,0 +1,99 @@
+<?php
+
+/**
+ * @file
+ * This is a sample module to create a draggable table using API Form.
+ *
+ * @see http://e9p.net/theming-drupal-7-form-elements-table
+ * @see https://www.urbaninsight.com/2012/09/11/creating-table-with-draggable-weights-in-drupal-7
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function draggable_table_menu() {
+  $items = array();
+  $items['admin/config/sample'] = array(
+    'title' => 'Sample',
+    'description' => 'Sample Module',
+    'weight' => -8,
+    'page callback' => 'system_admin_menu_block_page',
+    'access arguments' => array('access administration pages'),
+    'file' => 'system.admin.inc',
+    'file path' => drupal_get_path('module', 'system'),
+    'position' => 'right',
+  );
+  $items['admin/config/sample/draggable'] = array(
+    'title' => 'Draggable Table API Form',
+    'description' => 'Settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('draggable_table_settings_form'),
+    'access arguments' => array('administer site configuration'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'draggable_table.admin.inc',
+    'file path' => drupal_get_path('module', 'draggable_table'),
+    'weight' => 1,
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function draggable_table_theme() {
+  return array(
+    'draggable_table' => array(
+      // The renderable element is the form.
+      'render element' => 'form',
+    ),
+  );
+}
+
+/**
+ * Theme callback for the form table.
+ */
+function theme_draggable_table(&$variables) {
+  // Get the userful values.
+  $form = $variables['form'];
+  $rows = $form['rows'];
+  $header = $form['#header'];
+
+  // Setup the structure to be rendered and returned.
+  $content = array(
+    '#theme' => 'table',
+    '#header' => $header,
+    '#rows' => array(),
+    '#attributes' => array('id' => 'dt-order'),
+  );
+
+  // Traverse each row.  @see element_chidren().
+  foreach (element_children($rows) as $row_index) {
+    $row = array();
+    // Traverse each column in the row.  @see element_children().
+    $i = 0;
+    foreach (element_children($rows[$row_index]) as $col_index) {
+      // Render the column form element.
+      $row['data'][] = drupal_render($rows[$row_index][$col_index]);
+      // $row['data']['class'] = array('draggable');.
+      $i++;
+    }
+    // Add the row to the table.
+    $content['#rows'][$row_index] = $row;
+    $content['#rows'][$row_index]['class'] = array('class' => 'draggable');
+  }
+
+  drupal_add_tabledrag('dt-order', 'order', 'sibling', 'dt-order-weight');
+
+  // Render the table and return.
+  return drupal_render($content);
+}
+
+/**
+ * Custom array sort function by weight.
+ */
+function draggable_table_arraysort($a, $b) {
+  if (isset($a['weight']) && isset($b['weight'])) {
+    return $a['weight'] < $b['weight'] ? -1 : 1;
+  }
+  return 0;
+}
